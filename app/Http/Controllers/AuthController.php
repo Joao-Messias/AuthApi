@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Requests\UserRequest;
+use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +27,15 @@ class AuthController extends Controller
 
         $user = $this->userService->createUser($data);
 
-        return response()->json($user, 201);
+        return response()->json([
+            'message' => 'ok',
+            'user' => [
+                'name' => $user->name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'password' => $user->password,
+            ]
+        ]);
     }
 
     public function update(UpdateUserRequest $request, $id)
@@ -62,5 +72,39 @@ class AuthController extends Controller
     public function me()
     {
         return response()->json(Auth::user());
+    }
+
+    public function checkAuth(Request $request)
+    {
+        $token = $request->header('Authorization');
+
+        if (!$token) {
+            return response()->json(['auth' => false], 401);
+        }
+
+        $token = str_replace('Bearer ', '', $token);
+
+        try {
+            $payload = JWTAuth::setToken($token)->getPayload();
+        } catch (JWTException $e) {
+            return response()->json(['auth' => false], 401);
+        }
+
+        $userId = $request->query('user');
+        if (!$userId) {
+            return response()->json(['auth' => false], 401);
+        }
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            return response()->json(['auth' => false], 404);
+        }
+
+        if ($payload['sub'] == $user->getJWTIdentifier()) {
+            return response()->json(['auth' => true], 200);
+        }
+
+        return response()->json(['auth' => false], 401);
     }
 }

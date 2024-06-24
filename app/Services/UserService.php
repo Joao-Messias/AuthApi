@@ -1,8 +1,11 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class UserService
 {
@@ -42,5 +45,18 @@ class UserService
     public function getUserByEmail($email)
     {
         return User::where('email', $email)->first();
+    }
+
+    public function validateCredentials(array $credentials): \Illuminate\Http\JsonResponse
+    {
+        try {
+            if (!$token = JWTAuth::attempt($credentials)) {
+                return response()->json(['error' => 'Invalid credentials'], 401);
+            }
+        } catch (JWTException $e) {
+            return response()->json(['error' => 'Could not create token'], 500);
+        }
+
+        return response()->json(compact('token'));
     }
 }

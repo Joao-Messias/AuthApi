@@ -19,6 +19,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::put('/users/{id}', [AuthController::class, 'update']);
 Route::delete('/users/{id}', [AuthController::class, 'delete']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/token', [AuthController::class, 'checkAuth']);
 
 Route::middleware('jwt.auth')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
